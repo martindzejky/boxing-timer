@@ -1,5 +1,6 @@
 import CoreText
 import SwiftUI
+import UIKit
 
 // Colors and display type follow the approved Corner mockups.
 enum TimerStyle {
@@ -16,6 +17,38 @@ enum TimerStyle {
       return
     }
     CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+  }
+}
+
+struct WorkoutCountdown: View {
+  let seconds: Int
+  let availableWidth: CGFloat
+  let maximumFontSize: CGFloat
+
+  var body: some View {
+    let text = durationText(seconds)
+    let referenceFont = UIFont(name: "Anton-Regular", size: 1)!
+    let referenceWidth = ("00:00" as NSString).size(withAttributes: [.font: referenceFont]).width
+    let fontSize = min(maximumFontSize, availableWidth / referenceWidth)
+
+    HStack(spacing: 0) {
+      ForEach(Array(text.enumerated()), id: \.offset) { _, character in
+        // Anton has proportional digits. Reserve a zero's width even for a narrow one.
+        Text(character == ":" ? ":" : "0")
+          .hidden()
+          .overlay {
+            Text(String(character))
+              .contentTransition(.identity)
+          }
+      }
+    }
+    .font(TimerStyle.display(fontSize))
+    .frame(width: fontSize * referenceWidth)
+    .contentShape(Rectangle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityAddTraits(.isStaticText)
+    .accessibilityLabel("Time remaining")
+    .accessibilityValue(text)
   }
 }
 

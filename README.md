@@ -22,7 +22,7 @@ For a physical iPhone:
 3. In the app target's Signing & Capabilities, select your Personal Team. The bundle identifier `com.martindzejky.BoxingTimer` is provisional; change it if your account requires it.
 4. Select the connected phone as the run destination and run the app.
 
-No signing team or credentials are stored in the repository. Physical-device signing, exact iOS compatibility, locked-screen bells, Bluetooth output, and mixing with music must be checked on the actual phone. Simulator checks do not establish those hardware behaviors.
+The project records a Personal Team identifier; signing certificates and credentials stay on your Mac. Physical-device signing, exact iOS compatibility, locked-screen bells, Bluetooth output, and mixing with music must be checked on the actual phone. Simulator checks do not establish those hardware behaviors.
 
 ## Verification
 
@@ -33,10 +33,14 @@ xcrun swift-format lint --strict --recursive BoxingTimer BoxingTimerTests Boxing
 git diff --check
 ```
 
-Swift Testing covers interval boundaries, clock catch-up, no-preparation/no-rest/single-round sessions, cue ordering, and saved configuration validation. XCUITest exercises setup, sound preview, pause/resume, Home Screen transitions, completion/repeat, end/cancel, and persistence after relaunch. Tests attach screenshots to the Xcode result bundle. Debug-only `--ui-testing` uses a short workout for end-to-end tests; release builds ignore it.
+Swift Testing covers interval boundaries, clock catch-up, no-preparation/no-rest/single-round sessions, cue ordering, and saved configuration validation. XCUITest exercises setup, sound preview, fixed countdown geometry as digits change, pause/resume, Home Screen transitions, completion/repeat, end/cancel, and persistence after relaunch. Tests attach screenshots to the Xcode result bundle. Debug-only `--ui-testing` uses a short workout for end-to-end tests; release builds ignore it.
 
 ## Assets
 
 - `Design/boxing-glove.svg` is the editable red glove icon, based on the supplied PNG reference. The app icon uses an opaque 1024×1024 PNG export. Regenerate from the repository root with `swift scripts/render-icon.swift` (macOS system WebKit, no extra dependencies).
 - Anton is bundled under the SIL Open Font License in `BoxingTimer/Resources/Anton-OFL.txt`, sourced from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/anton).
 - The single-strike bell in `BoxingTimer/Resources/boxing-bell.wav` was supplied by Martin from ElevenLabs. Its full two-second decay is preserved; the file is converted to mono 44.1 kHz PCM for playback. Countdown beeps are synthesized in `WorkoutAudio.swift`.
+
+## License
+
+Source code is available under the [MIT License](LICENSE). The bundled Anton font retains its [SIL Open Font License](BoxingTimer/Resources/Anton-OFL.txt).

@@ -95,17 +95,13 @@ struct ContentView: View {
         .foregroundStyle(TimerStyle.red)
         .padding(.top, compact ? 8 : 16)
         .accessibilityIdentifier("workoutPhase")
-      Text(durationText(workout.remaining))
-        .font(TimerStyle.display(min(width * 0.47, compact ? 115 : 180)))
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.5)
-        .foregroundStyle(.white)
-        .contentTransition(.identity)
-        .accessibilityIdentifier("countdown")
-        .accessibilityLabel("Time remaining")
-        .accessibilityValue(durationText(workout.remaining))
-        .padding(.top, 4)
+      WorkoutCountdown(
+        seconds: workout.remaining, availableWidth: width,
+        maximumFontSize: min(width * 0.47, compact ? 115 : 180)
+      )
+      .foregroundStyle(.white)
+      .accessibilityIdentifier("countdown")
+      .padding(.top, 4)
       Text(
         "Round \(Text(String(format: "%02d", workout.round)).foregroundStyle(TimerStyle.red)) / \(String(format: "%02d", workout.timeline.configuration.rounds))"
       )

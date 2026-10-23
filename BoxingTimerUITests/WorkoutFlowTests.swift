@@ -6,6 +6,33 @@ final class WorkoutFlowTests: XCTestCase {
     continueAfterFailure = false
   }
 
+  func testCountdownKeepsLayoutAsDigitsChange() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--ui-testing"]
+    app.launch()
+    app.buttons["Start session"].tap()
+    let countdown = app.staticTexts["countdown"]
+    XCTAssertTrue(countdown.waitForExistence(timeout: 3))
+    let timerFrame = countdown.frame
+    let roundFrame = app.staticTexts["roundCount"].frame
+    var values = Set<String>()
+    let deadline = Date().addingTimeInterval(22)
+    while countdown.exists && Date() < deadline {
+      let value = countdown.value as? String ?? ""
+      values.insert(value)
+      XCTAssertEqual(countdown.frame.minX, timerFrame.minX, accuracy: 0.5, value)
+      XCTAssertEqual(countdown.frame.width, timerFrame.width, accuracy: 0.5, value)
+      XCTAssertEqual(countdown.frame.height, timerFrame.height, accuracy: 0.5, value)
+      XCTAssertEqual(
+        app.staticTexts["roundCount"].frame.minY, roundFrame.minY, accuracy: 0.5, value)
+      Thread.sleep(forTimeInterval: 0.15)
+    }
+    XCTAssertTrue(values.contains("00:01"))
+    XCTAssertTrue(values.contains("00:02"))
+    XCTAssertTrue(app.staticTexts["COMPLETE"].exists)
+    capture("12 Stable countdown")
+  }
+
   func testSessionLifecycleAndRepeat() {
     let app = XCUIApplication()
     app.launchArguments = ["--ui-testing"]
