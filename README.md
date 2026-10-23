@@ -1,21 +1,42 @@
 # Boxing Timer
 
-A private iPhone boxing timer. This repository currently contains only the standard SwiftUI starter screen; timer features and design come next.
+A private native iPhone boxing timer, built with SwiftUI. Dark navy, red accents, oversized Anton numerals, and bottom-aligned workout controls follow the approved Corner design.
+
+- Configurable rounds, round duration, rest, and preparation; settings save automatically.
+- Preparation → rounds and rests → completion, without a rest after the final round.
+- Pause/resume, confirmation before ending, repeat, and a work/rest summary.
+- A synthesized boxing bell and three-second preparation/rest countdown cues, mixed with other audio.
+- Scheduled audio drives the workout clock. Cues are queued before starting, including after resuming, rather than depending on background UI timers.
+- Screen stays awake during a running workout. Calls, disconnected headphones, and audio-engine interruptions pause the session for explicit resumption.
+
+No third-party code dependencies, accounts, analytics, or network access.
 
 ## Development
 
-Open `BoxingTimer.xcodeproj` in Xcode and run the `BoxingTimer` scheme on an iPhone simulator.
+Open `BoxingTimer.xcodeproj` in Xcode and run the `BoxingTimer` scheme on an iPhone simulator. The deployment target is iOS 26.0 and the first version supports portrait orientation.
 
-The initial deployment target is iOS 26.0, matching the installed simulator runtime. Confirm the physical iPhone's iOS version before device installation.
+For a physical iPhone:
 
-For your iPhone, choose your Apple account's Personal Team under Signing & Capabilities. The bundle identifier `com.martindzejky.BoxingTimer` is provisional; change it if your account requires it. No team or signing credentials are stored in this repository.
+1. Connect the iPhone, trust the Mac, and enable Developer Mode on the phone when prompted.
+2. Add your Apple account in Xcode Settings → Accounts.
+3. In the app target's Signing & Capabilities, select your Personal Team. The bundle identifier `com.martindzejky.BoxingTimer` is provisional; change it if your account requires it.
+4. Select the connected phone as the run destination and run the app.
+
+No signing team or credentials are stored in the repository. Physical-device signing, exact iOS compatibility, locked-screen bells, Bluetooth output, and mixing with music must be checked on the actual phone. Simulator checks do not establish those hardware behaviors.
 
 ## Verification
 
 ```sh
 xcodebuild -project BoxingTimer.xcodeproj -scheme BoxingTimer -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
-xcrun swift-format lint --strict --recursive BoxingTimer
+xcodebuild -project BoxingTimer.xcodeproj -scheme BoxingTimer -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build -collect-test-diagnostics never -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
+xcrun swift-format lint --strict --recursive BoxingTimer BoxingTimerTests BoxingTimerUITests scripts
 git diff --check
 ```
 
-There are no third-party dependencies or tests yet.
+Swift Testing covers interval boundaries, clock catch-up, no-preparation/no-rest/single-round sessions, cue ordering, and saved configuration validation. XCUITest exercises setup, sound preview, pause/resume, Home Screen transitions, completion/repeat, end/cancel, and persistence after relaunch. Tests attach screenshots to the Xcode result bundle. Debug-only `--ui-testing` uses a short workout for end-to-end tests; release builds ignore it.
+
+## Assets
+
+- `Design/boxing-glove.svg` is the editable red glove icon, based on the supplied PNG reference. The app icon uses an opaque 1024×1024 PNG export. Regenerate from the repository root with `swift scripts/render-icon.swift` (macOS system WebKit, no extra dependencies).
+- Anton is bundled under the SIL Open Font License in `BoxingTimer/Resources/Anton-OFL.txt`, sourced from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/anton).
+- Bell/countdown waveforms are generated in `WorkoutAudio.swift`; no audio files or licensed samples are required.
