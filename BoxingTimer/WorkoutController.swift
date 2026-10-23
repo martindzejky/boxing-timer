@@ -21,7 +21,6 @@ final class WorkoutController {
   @ObservationIgnored private let audio = WorkoutAudio()
   @ObservationIgnored private var clockStartedAt: TimeInterval = 0
   @ObservationIgnored private var clockOffset: TimeInterval = 0
-  @ObservationIgnored private var finishTask: Task<Void, Never>?
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
@@ -46,7 +45,6 @@ final class WorkoutController {
   }
 
   func start() {
-    finishTask?.cancel()
     configuration = configuration.validated
     configuration.save(to: defaults)
     timeline = WorkoutTimeline(configuration: configuration)
@@ -62,7 +60,6 @@ final class WorkoutController {
   }
 
   private func beginPlayback() {
-    finishTask?.cancel()
     do {
       try audio.start(timeline: timeline, from: elapsed)
       clockOffset = elapsed
@@ -88,11 +85,6 @@ final class WorkoutController {
     if elapsed >= Double(timeline.configuration.totalSeconds) {
       screen = .finished
       UIApplication.shared.isIdleTimerDisabled = false
-      finishTask = Task { [weak self] in
-        try? await Task.sleep(for: .seconds(1.5))
-        guard !Task.isCancelled else { return }
-        self?.audio.stop()
-      }
     }
   }
 
@@ -107,7 +99,6 @@ final class WorkoutController {
   }
 
   func end() {
-    finishTask?.cancel()
     audio.stop()
     elapsed = 0
     screen = .setup
@@ -116,14 +107,8 @@ final class WorkoutController {
   }
 
   func previewBell() {
-    finishTask?.cancel()
     do {
       try audio.previewBell()
-      finishTask = Task { [weak self] in
-        try? await Task.sleep(for: .seconds(1.5))
-        guard !Task.isCancelled else { return }
-        self?.audio.stop()
-      }
     } catch {
       audio.stop()
       errorMessage = "Audio could not start. Check your audio output and try again."

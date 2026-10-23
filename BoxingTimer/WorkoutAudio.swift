@@ -34,8 +34,8 @@ final class WorkoutAudio {
     try session.setCategory(.playback, mode: .default, options: .mixWithOthers)
     try session.setActive(true)
 
-    let bell = makeTone(duration: 1.4, bell: true)
-    let beep = makeTone(duration: 0.12, bell: false)
+    let bell = try loadBell()
+    let beep = makeCountdownBeep()
     buffers = [bell, beep]
     for cue in timeline.cues where cue.time >= elapsed {
       if cue.time == Double(timeline.configuration.totalSeconds) {
@@ -55,9 +55,9 @@ final class WorkoutAudio {
     let session = AVAudioSession.sharedInstance()
     try session.setCategory(.playback, mode: .default, options: .mixWithOthers)
     try session.setActive(true)
-    let bell = makeTone(duration: 1.4, bell: true)
+    let bell = try loadBell()
     buffers = [bell]
-    schedule(bell, at: 0)
+    scheduleFinalBell(bell, at: 0)
     engine.prepare()
     try engine.start()
     player.play()
@@ -102,7 +102,19 @@ final class WorkoutAudio {
     }
   }
 
-  private func makeTone(duration: TimeInterval, bell: Bool) -> AVAudioPCMBuffer {
+  private func loadBell() throws -> AVAudioPCMBuffer {
+    guard let url = Bundle.main.url(forResource: "boxing-bell", withExtension: "wav") else {
+      throw CocoaError(.fileNoSuchFile)
+    }
+    let file = try AVAudioFile(forReading: url)
+    let buffer = AVAudioPCMBuffer(
+      pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))!
+    try file.read(into: buffer)
+    return buffer
+  }
+
+  private func makeCountdownBeep() -> AVAudioPCMBuffer {
+    let duration = 0.12
     let count = AVAudioFrameCount(duration * format.sampleRate)
     let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: count)!
     buffer.frameLength = count
@@ -110,17 +122,7 @@ final class WorkoutAudio {
     for index in 0..<Int(count) {
       let time = Double(index) / format.sampleRate
       let attack = min(1, time / 0.003)
-      let value: Double
-      if bell {
-        // Inharmonic partials and a short attack give a struck metal bell its character.
-        value =
-          (sin(2 * .pi * 540 * time) * exp(-3 * time)
-            + 0.6 * sin(2 * .pi * 845 * time) * exp(-4.5 * time)
-            + 0.35 * sin(2 * .pi * 1320 * time) * exp(-6 * time)
-            + 0.2 * sin(2 * .pi * 1840 * time) * exp(-9 * time)) * 0.4
-      } else {
-        value = sin(2 * .pi * 880 * time) * 0.25 * min(1, (duration - time) / 0.02)
-      }
+      let value = sin(2 * .pi * 880 * time) * 0.25 * min(1, (duration - time) / 0.02)
       samples[index] = Float(value * attack)
     }
     return buffer

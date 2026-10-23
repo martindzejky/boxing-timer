@@ -1,9 +1,31 @@
+import AVFAudio
 import Foundation
 import Testing
 
 @testable import BoxingTimer
 
 struct WorkoutTests {
+  @Test func bundledBellMatchesPlaybackFormat() throws {
+    let url = try #require(Bundle.main.url(forResource: "boxing-bell", withExtension: "wav"))
+    let file = try AVAudioFile(forReading: url)
+    #expect(file.processingFormat.sampleRate == 44_100)
+    #expect(file.processingFormat.channelCount == 1)
+    #expect(file.length == 88_200)
+  }
+
+  @Test @MainActor func bellPreviewStopsAfterFullSample() async throws {
+    let audio = WorkoutAudio()
+    defer { audio.stop() }
+    try audio.previewBell()
+    try await Task.sleep(for: .seconds(1.6))
+    #expect(audio.isRunning)
+    let deadline = ContinuousClock.now + .seconds(3)
+    while audio.isRunning && ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+    #expect(!audio.isRunning)
+  }
+
   @Test func fullTimelineHasPreparationAndNoFinalRest() {
     let timeline = WorkoutTimeline(configuration: WorkoutConfiguration())
     #expect(timeline.intervals.count == 12)

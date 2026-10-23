@@ -5,7 +5,7 @@ A private native iPhone boxing timer, built with SwiftUI. Dark navy, red accents
 - Configurable rounds, round duration, rest, and preparation; settings save automatically.
 - Preparation → rounds and rests → completion, without a rest after the final round.
 - Pause/resume, confirmation before ending, repeat, and a work/rest summary.
-- A synthesized boxing bell and three-second preparation/rest countdown cues, mixed with other audio.
+- A recorded boxing bell and three-second preparation/rest countdown cues, mixed with other audio.
 - Scheduled audio drives the workout clock. Cues are queued before starting, including after resuming, rather than depending on background UI timers.
 - Screen stays awake during a running workout. Calls, disconnected headphones, and audio-engine interruptions pause the session for explicit resumption.
 
@@ -39,4 +39,4 @@ Swift Testing covers interval boundaries, clock catch-up, no-preparation/no-rest
 
 - `Design/boxing-glove.svg` is the editable red glove icon, based on the supplied PNG reference. The app icon uses an opaque 1024×1024 PNG export. Regenerate from the repository root with `swift scripts/render-icon.swift` (macOS system WebKit, no extra dependencies).
 - Anton is bundled under the SIL Open Font License in `BoxingTimer/Resources/Anton-OFL.txt`, sourced from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/anton).
-- Bell/countdown waveforms are generated in `WorkoutAudio.swift`; no audio files or licensed samples are required.
+- The single-strike bell in `BoxingTimer/Resources/boxing-bell.wav` was supplied by Martin from ElevenLabs. Its full two-second decay is preserved; the file is converted to mono 44.1 kHz PCM for playback. Countdown beeps are synthesized in `WorkoutAudio.swift`.
