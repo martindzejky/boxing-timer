@@ -7,15 +7,21 @@ import Foundation
 final class WorkoutAudio {
   private let engine = AVAudioEngine()
   private let player = AVAudioPlayerNode()
+  private let roundEndPlayer = AVAudioPlayerNode()
+  private let countdownPlayer = AVAudioPlayerNode()
   private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
   private var buffers: [AVAudioPCMBuffer] = []
   private var offset: TimeInterval = 0
   private var playbackID = UUID()
   private(set) var isPrepared = false
 
+  private var players: [AVAudioPlayerNode] { [player, roundEndPlayer, countdownPlayer] }
+
   init() {
-    engine.attach(player)
-    engine.connect(player, to: engine.mainMixerNode, format: format)
+    for node in players {
+      engine.attach(node)
+      engine.connect(node, to: engine.mainMixerNode, format: format)
+    }
   }
 
   var isRunning: Bool { engine.isRunning && player.isPlaying }
@@ -35,18 +41,31 @@ final class WorkoutAudio {
     try session.setActive(true)
 
     let bell = try loadBell()
+    let roundEndBell = makeDoubleBell(bell, spacing: 0.25)
+    let workoutEndBell = makeDoubleBell(bell, spacing: 0.8)
     let beep = makeCountdownBeep()
-    buffers = [bell, beep]
+    buffers = [bell, roundEndBell, workoutEndBell, beep]
     for cue in timeline.cues where cue.time >= elapsed {
-      if cue.time == Double(timeline.configuration.totalSeconds) {
-        scheduleFinalBell(bell, at: cue.time - elapsed)
-      } else {
-        schedule(cue.sound == .bell ? bell : beep, at: cue.time - elapsed)
+      let time = cue.time - elapsed
+      switch cue.sound {
+      case .roundStart:
+        schedule(bell, at: time, on: player)
+      case .roundEnd:
+        schedule(roundEndBell, at: time, on: roundEndPlayer)
+      case .workoutEnd:
+        scheduleFinalBell(workoutEndBell, at: time, on: roundEndPlayer)
+      case .countdown:
+        schedule(beep, at: time, on: countdownPlayer)
       }
     }
     engine.prepare()
     try engine.start()
-    player.play()
+    // Use the same render start for each voice so overlapping cues stay on the workout clock.
+    let startTime = AVAudioTime(
+      hostTime: mach_absolute_time() + AVAudioTime.hostTime(forSeconds: 0.02))
+    for node in players {
+      node.play(at: startTime)
+    }
     isPrepared = true
   }
 
@@ -57,38 +76,42 @@ final class WorkoutAudio {
     try session.setActive(true)
     let bell = try loadBell()
     buffers = [bell]
-    scheduleFinalBell(bell, at: 0)
+    scheduleFinalBell(bell, at: 0, on: player)
     engine.prepare()
     try engine.start()
     player.play()
   }
 
   func pause() {
-    player.pause()
+    for node in players { node.pause() }
     engine.pause()
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
   }
 
   func stop() {
     playbackID = UUID()
-    player.stop()
+    for node in players { node.stop() }
     engine.stop()
     buffers.removeAll()
     isPrepared = false
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
   }
 
-  private func schedule(_ buffer: AVAudioPCMBuffer, at seconds: TimeInterval) {
-    player.scheduleBuffer(
+  private func schedule(
+    _ buffer: AVAudioPCMBuffer, at seconds: TimeInterval, on node: AVAudioPlayerNode
+  ) {
+    node.scheduleBuffer(
       buffer,
       at: AVAudioTime(
         sampleTime: AVAudioFramePosition(seconds * format.sampleRate), atRate: format.sampleRate)
     )
   }
 
-  private func scheduleFinalBell(_ buffer: AVAudioPCMBuffer, at seconds: TimeInterval) {
+  private func scheduleFinalBell(
+    _ buffer: AVAudioPCMBuffer, at seconds: TimeInterval, on node: AVAudioPlayerNode
+  ) {
     let id = playbackID
-    player.scheduleBuffer(
+    node.scheduleBuffer(
       buffer,
       at: AVAudioTime(
         sampleTime: AVAudioFramePosition(seconds * format.sampleRate), atRate: format.sampleRate),
@@ -110,6 +133,29 @@ final class WorkoutAudio {
     let buffer = AVAudioPCMBuffer(
       pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length))!
     try file.read(into: buffer)
+    return buffer
+  }
+
+  private func makeDoubleBell(
+    _ bell: AVAudioPCMBuffer, spacing: TimeInterval
+  ) -> AVAudioPCMBuffer {
+    let delay = Int(spacing * format.sampleRate)
+    let count = Int(bell.frameLength) + delay
+    let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))!
+    buffer.frameLength = AVAudioFrameCount(count)
+    let output = buffer.floatChannelData![0]
+    let input = bell.floatChannelData![0]
+    output.initialize(repeating: 0, count: count)
+    for index in 0..<Int(bell.frameLength) {
+      output[index] += input[index]
+      output[index + delay] += input[index]
+    }
+    // Preserve both decays without clipping where the strikes overlap.
+    var peak: Float = 1
+    for index in 0..<count { peak = max(peak, abs(output[index])) }
+    if peak > 1 {
+      for index in 0..<count { output[index] /= peak }
+    }
     return buffer
   }
 

@@ -49,7 +49,7 @@ struct WorkoutInterval: Equatable {
 }
 
 struct WorkoutCue: Equatable {
-  enum Sound { case bell, countdown }
+  enum Sound { case roundStart, roundEnd, workoutEnd, countdown }
   let time: TimeInterval
   let sound: Sound
 }
@@ -88,7 +88,9 @@ struct WorkoutTimeline {
     var result: [WorkoutCue] = []
     for interval in intervals {
       if interval.phase != .preparation {
-        result.append(WorkoutCue(time: interval.start, sound: .bell))
+        result.append(
+          WorkoutCue(
+            time: interval.start, sound: interval.phase == .round ? .roundStart : .roundEnd))
       }
       if interval.phase == .preparation || interval.phase == .rest {
         for remaining in 1...3 where remaining <= interval.duration {
@@ -96,7 +98,7 @@ struct WorkoutTimeline {
         }
       }
     }
-    result.append(WorkoutCue(time: Double(configuration.totalSeconds), sound: .bell))
+    result.append(WorkoutCue(time: Double(configuration.totalSeconds), sound: .workoutEnd))
     return result.sorted { $0.time < $1.time }
   }
 

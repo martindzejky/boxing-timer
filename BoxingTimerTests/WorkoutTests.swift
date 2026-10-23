@@ -4,6 +4,7 @@ import Testing
 
 @testable import BoxingTimer
 
+@Suite(.serialized)
 struct WorkoutTests {
   @Test func bundledBellMatchesPlaybackFormat() throws {
     let url = try #require(Bundle.main.url(forResource: "boxing-bell", withExtension: "wav"))
@@ -24,6 +25,38 @@ struct WorkoutTests {
       try await Task.sleep(for: .milliseconds(50))
     }
     #expect(!audio.isRunning)
+  }
+
+  @Test @MainActor func finalDoubleBellPlaysBothStrikesBeforeStopping() async throws {
+    let audio = WorkoutAudio()
+    defer { audio.stop() }
+    let timeline = WorkoutTimeline(
+      configuration: WorkoutConfiguration(
+        rounds: 1, roundSeconds: 5, restSeconds: 0, preparationSeconds: 0))
+    try audio.start(timeline: timeline, from: 4.9)
+    // Final cue is 0.1 seconds away, then two strikes 0.8 seconds apart with a 2-second tail.
+    try await Task.sleep(for: .seconds(2.5))
+    #expect(audio.isRunning)
+    let deadline = ContinuousClock.now + .seconds(3)
+    while audio.isRunning && ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+    #expect(!audio.isRunning)
+  }
+
+  @Test func bellCuesDistinguishRoundRestAndCompletion() {
+    let timeline = WorkoutTimeline(
+      configuration: WorkoutConfiguration(
+        rounds: 2, roundSeconds: 5, restSeconds: 5, preparationSeconds: 3))
+    let bells = timeline.cues.filter { $0.sound != .countdown }
+    #expect(
+      bells == [
+        WorkoutCue(time: 3, sound: .roundStart),
+        WorkoutCue(time: 8, sound: .roundEnd),
+        WorkoutCue(time: 13, sound: .roundStart),
+        WorkoutCue(time: 18, sound: .workoutEnd),
+      ])
+    #expect(bells.filter { $0.time >= 8.1 }.first?.sound == .roundStart)
   }
 
   @Test func fullTimelineHasPreparationAndNoFinalRest() {
@@ -68,6 +101,13 @@ struct WorkoutTests {
     #expect(timeline.interval(at: 5)?.round == 2)
     #expect(timeline.interval(at: 10)?.round == 3)
     #expect(timeline.interval(at: 15) == nil)
+    #expect(
+      timeline.cues == [
+        WorkoutCue(time: 0, sound: .roundStart),
+        WorkoutCue(time: 5, sound: .roundStart),
+        WorkoutCue(time: 10, sound: .roundStart),
+        WorkoutCue(time: 15, sound: .workoutEnd),
+      ])
   }
 
   @Test func savedConfigurationIsValidated() throws {
@@ -95,12 +135,12 @@ struct WorkoutTests {
         WorkoutCue(time: 7, sound: .countdown),
         WorkoutCue(time: 8, sound: .countdown),
         WorkoutCue(time: 9, sound: .countdown),
-        WorkoutCue(time: 10, sound: .bell),
+        WorkoutCue(time: 10, sound: .roundStart),
       ])
-    #expect(timeline.cues.last == WorkoutCue(time: 1390, sound: .bell))
+    #expect(timeline.cues.last == WorkoutCue(time: 1390, sound: .workoutEnd))
     let future = timeline.cues.filter { $0.time >= 248.5 }
     #expect(future.first == WorkoutCue(time: 249, sound: .countdown))
-    #expect(future.dropFirst().first == WorkoutCue(time: 250, sound: .bell))
+    #expect(future.dropFirst().first == WorkoutCue(time: 250, sound: .roundStart))
   }
 
   @Test func durationFormatting() {
