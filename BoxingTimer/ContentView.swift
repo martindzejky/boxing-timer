@@ -7,6 +7,15 @@ struct ContentView: View {
   @State private var confirmingEnd = false
   @Environment(\.scenePhase) private var scenePhase
 
+  private var isActiveRound: Bool {
+    workout.screen == .running && workout.interval?.phase == .round
+  }
+
+  private var background: Color { isActiveRound ? TimerStyle.red : TimerStyle.background }
+  private var foreground: Color { isActiveRound ? TimerStyle.background : .white }
+  private var accent: Color { isActiveRound ? TimerStyle.background : TimerStyle.red }
+  private var muted: Color { isActiveRound ? TimerStyle.background : TimerStyle.muted }
+
   var body: some View {
     GeometryReader { geometry in
       let compact = geometry.size.height < 600
@@ -20,7 +29,7 @@ struct ContentView: View {
             } label: {
               Image(systemName: "gearshape")
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(TimerStyle.muted)
+                .foregroundStyle(muted)
                 .frame(width: 44, height: 44)
             }
             .accessibilityLabel("Settings")
@@ -42,11 +51,11 @@ struct ContentView: View {
           .padding(.horizontal, 24)
           .padding(.top, 16)
           .padding(.bottom, 14)
-          .background(TimerStyle.background)
+          .background(background)
       }
     }
-    .background(TimerStyle.background.ignoresSafeArea())
-    .preferredColorScheme(.dark)
+    .background(background.ignoresSafeArea())
+    .preferredColorScheme(isActiveRound ? .light : .dark)
     .sheet(isPresented: $showingSettings) {
       settingsSheet
     }
@@ -92,20 +101,20 @@ struct ContentView: View {
     VStack(spacing: 0) {
       Text(heading)
         .font(TimerStyle.display(compact ? 28 : 34))
-        .foregroundStyle(TimerStyle.red)
+        .foregroundStyle(accent)
         .padding(.top, compact ? 8 : 16)
         .accessibilityIdentifier("workoutPhase")
       WorkoutCountdown(
         seconds: workout.remaining, availableWidth: width,
         maximumFontSize: min(width * 0.47, compact ? 115 : 180)
       )
-      .foregroundStyle(.white)
+      .foregroundStyle(foreground)
       .accessibilityIdentifier("countdown")
       .padding(.top, 4)
       Text(
-        "Round \(Text(String(format: "%02d", workout.round)).foregroundStyle(TimerStyle.red)) / \(String(format: "%02d", workout.timeline.configuration.rounds))"
+        "Round \(Text(String(format: "%02d", workout.round)).foregroundStyle(accent)) / \(String(format: "%02d", workout.timeline.configuration.rounds))"
       )
-      .foregroundStyle(TimerStyle.muted)
+      .foregroundStyle(muted)
       .font(TimerStyle.display(compact ? 23 : 28))
       .accessibilityIdentifier("roundCount")
       roundProgress
@@ -113,14 +122,14 @@ struct ContentView: View {
       Spacer(minLength: 16)
       Text("UPCOMING")
         .font(TimerStyle.display(18))
-        .foregroundStyle(TimerStyle.muted)
+        .foregroundStyle(muted)
       upcoming
         .padding(.top, 2)
       if let message = workout.interruptionMessage {
         Text(message)
           .font(.callout)
           .multilineTextAlignment(.center)
-          .foregroundStyle(TimerStyle.muted)
+          .foregroundStyle(muted)
           .padding(.top, 12)
       }
       Spacer(minLength: 24)
@@ -146,7 +155,11 @@ struct ContentView: View {
     ) {
       ForEach(0..<workout.timeline.configuration.rounds, id: \.self) { index in
         Rectangle()
-          .fill(index < progressCount ? TimerStyle.red : TimerStyle.secondaryButton)
+          .fill(
+            index < progressCount
+              ? accent
+              : (isActiveRound ? TimerStyle.background.opacity(0.25) : TimerStyle.secondaryButton)
+          )
           .frame(height: 9)
       }
     }
@@ -179,7 +192,7 @@ struct ContentView: View {
       if workout.round == configuration.rounds {
         Text("FINISH")
           .font(TimerStyle.display(38))
-          .foregroundStyle(.white)
+          .foregroundStyle(foreground)
       } else if configuration.restSeconds == 0 {
         upcomingLabel("ROUND", seconds: configuration.roundSeconds)
       } else {
@@ -192,8 +205,8 @@ struct ContentView: View {
 
   private func upcomingLabel(_ title: String, seconds: Int) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: 12) {
-      Text(title).foregroundStyle(TimerStyle.red)
-      Text(shortDurationText(seconds)).foregroundStyle(.white)
+      Text(title).foregroundStyle(accent)
+      Text(shortDurationText(seconds)).foregroundStyle(foreground)
     }
     .font(TimerStyle.display(38))
     .lineLimit(1)
@@ -246,11 +259,14 @@ struct ContentView: View {
       HStack(spacing: 10) {
         WorkoutButton(
           title: workout.screen == .paused ? "Resume" : "Pause",
-          symbol: workout.screen == .paused ? "play.fill" : "pause.fill"
+          symbol: workout.screen == .paused ? "play.fill" : "pause.fill",
+          background: isActiveRound ? TimerStyle.background : nil
         ) {
           if workout.screen == .paused { workout.resume() } else { workout.pause() }
         }
-        WorkoutButton(title: "End", primary: false) {
+        WorkoutButton(
+          title: "End", primary: false, background: isActiveRound ? TimerStyle.background : nil
+        ) {
           workout.pause()
           confirmingEnd = true
         }
