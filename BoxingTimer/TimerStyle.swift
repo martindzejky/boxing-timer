@@ -56,6 +56,7 @@ struct WorkoutButton: View {
   let title: String
   var symbol: String? = nil
   var primary = true
+  var background: Color? = nil
   let action: () -> Void
 
   var body: some View {
@@ -76,7 +77,7 @@ struct WorkoutButton: View {
       }
       .foregroundStyle(.white)
       .frame(maxWidth: .infinity, minHeight: 64)
-      .background(primary ? TimerStyle.red : TimerStyle.secondaryButton)
+      .background(background ?? (primary ? TimerStyle.red : TimerStyle.secondaryButton))
       .clipShape(RoundedRectangle(cornerRadius: 5))
       .contentShape(Rectangle())
     }

@@ -5,6 +5,7 @@ A private native iPhone boxing timer, built with SwiftUI. Dark navy, red accents
 - Configurable rounds, round duration, rest, and preparation; settings save automatically.
 - Preparation → rounds and rests → completion, without a rest after the final round.
 - Pause/resume, confirmation before ending, repeat, and a work/rest summary.
+- Active rounds fill the screen with primary red and navy text and controls for visibility at a distance. Rest, preparation, pause, setup, and completion retain the navy background.
 - Recorded bell patterns: one strike starts a round, two quick strikes (0.25 seconds apart) begin rest, and two slower strikes (0.8 seconds apart) finish the workout. Three-second preparation/rest countdown beeps mix with the bells and other audio. With zero rest, each new round gets only its start strike.
 - Scheduled audio drives the workout clock. Cues are queued before starting, including after resuming, rather than depending on background UI timers.
 - Screen stays awake during a running workout. Calls, disconnected headphones, and audio-engine interruptions pause the session for explicit resumption.

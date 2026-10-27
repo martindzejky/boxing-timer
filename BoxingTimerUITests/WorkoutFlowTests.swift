@@ -20,11 +20,15 @@ final class WorkoutFlowTests: XCTestCase {
     while countdown.exists && Date() < deadline {
       let value = countdown.value as? String ?? ""
       values.insert(value)
-      XCTAssertEqual(countdown.frame.minX, timerFrame.minX, accuracy: 0.5, value)
-      XCTAssertEqual(countdown.frame.width, timerFrame.width, accuracy: 0.5, value)
-      XCTAssertEqual(countdown.frame.height, timerFrame.height, accuracy: 0.5, value)
+      let currentTimerFrame = countdown.frame
+      let currentRoundFrame = app.staticTexts["roundCount"].frame
+      // Completion can replace the timer between accessibility queries.
+      if app.staticTexts["COMPLETE"].exists { break }
+      XCTAssertEqual(currentTimerFrame.minX, timerFrame.minX, accuracy: 0.5, value)
+      XCTAssertEqual(currentTimerFrame.width, timerFrame.width, accuracy: 0.5, value)
+      XCTAssertEqual(currentTimerFrame.height, timerFrame.height, accuracy: 0.5, value)
       XCTAssertEqual(
-        app.staticTexts["roundCount"].frame.minY, roundFrame.minY, accuracy: 0.5, value)
+        currentRoundFrame.minY, roundFrame.minY, accuracy: 0.5, value)
       Thread.sleep(forTimeInterval: 0.15)
     }
     XCTAssertTrue(values.contains("00:01"))
@@ -59,7 +63,10 @@ final class WorkoutFlowTests: XCTestCase {
     app.buttons["Resume"].tap()
     XCTAssertTrue(app.staticTexts["ROUND"].waitForExistence(timeout: 2))
     capture("04 Round")
-    XCTAssertTrue(app.staticTexts["REST"].waitForExistence(timeout: 8))
+    let restPhase = XCTNSPredicateExpectation(
+      predicate: NSPredicate(format: "label == %@", "REST"),
+      object: app.staticTexts["workoutPhase"])
+    XCTAssertEqual(XCTWaiter.wait(for: [restPhase], timeout: 8), .completed)
     capture("05 Rest")
     XCTAssertTrue(app.staticTexts["COMPLETE"].waitForExistence(timeout: 14))
     capture("06 Finished")
