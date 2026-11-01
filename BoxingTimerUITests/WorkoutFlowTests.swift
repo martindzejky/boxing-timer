@@ -80,6 +80,27 @@ final class WorkoutFlowTests: XCTestCase {
     XCTAssertTrue(app.buttons["Start session"].waitForExistence(timeout: 3))
   }
 
+  func testRoundLengthReachesExactMinuteFromMinimum() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--ui-testing"]
+    app.launch()
+    let value = app.staticTexts["Round length"]
+    let increase = app.buttons["Increase round length"]
+    let decrease = app.buttons["Decrease round length"]
+    XCTAssertEqual(value.value as? String, "0:05")
+    XCTAssertFalse(decrease.isEnabled)
+    for expected in ["0:15", "0:30", "0:45", "1:00"] {
+      increase.tap()
+      XCTAssertEqual(value.value as? String, expected)
+    }
+    capture("13 Exact minute round length")
+    for expected in ["0:45", "0:30", "0:15", "0:05"] {
+      decrease.tap()
+      XCTAssertEqual(value.value as? String, expected)
+    }
+    XCTAssertFalse(decrease.isEnabled)
+  }
+
   func testConfigurationSettingsAndEarlyEnd() {
     let app = XCUIApplication()
     app.launchArguments = ["--ui-testing"]
@@ -88,10 +109,14 @@ final class WorkoutFlowTests: XCTestCase {
     XCTAssertEqual(app.staticTexts["Rounds"].value as? String, "1")
     app.buttons["Increase rounds"].tap()
     app.buttons["Increase round length"].tap()
-    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:20")
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:15")
     app.buttons["Decrease round length"].tap()
+    app.buttons["Increase rest length"].tap()
+    XCTAssertEqual(app.staticTexts["Rest length"].value as? String, "0:15")
     app.buttons["Decrease rest length"].tap()
     XCTAssertEqual(app.staticTexts["Rest length"].value as? String, "0:00")
+    app.buttons["Increase preparation"].tap()
+    XCTAssertEqual(app.staticTexts["Preparation"].value as? String, "0:05")
     app.buttons["Decrease preparation"].tap()
     XCTAssertEqual(app.staticTexts["Preparation"].value as? String, "0:00")
     app.buttons["Settings"].tap()
@@ -139,7 +164,7 @@ final class WorkoutFlowTests: XCTestCase {
     app.launchArguments = []
     app.launch()
     XCTAssertEqual(app.staticTexts["Rounds"].value as? String, "3")
-    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:20")
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:15")
     XCTAssertEqual(app.staticTexts["Rest length"].value as? String, "0:00")
     XCTAssertEqual(app.staticTexts["Preparation"].value as? String, "0:00")
   }

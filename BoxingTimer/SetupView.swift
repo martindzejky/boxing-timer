@@ -49,7 +49,7 @@ struct SetupView: View {
         "Decrease \(title.lowercased())", symbol: "minus",
         disabled: value.wrappedValue <= range.lowerBound
       ) {
-        value.wrappedValue = max(range.lowerBound, value.wrappedValue - step)
+        value.wrappedValue = max(range.lowerBound, ((value.wrappedValue - 1) / step) * step)
       }
       Text(time ? shortDurationText(value.wrappedValue) : String(value.wrappedValue))
         .font(TimerStyle.display(24))
@@ -65,7 +65,7 @@ struct SetupView: View {
         "Increase \(title.lowercased())", symbol: "plus",
         disabled: value.wrappedValue >= range.upperBound
       ) {
-        value.wrappedValue = min(range.upperBound, value.wrappedValue + step)
+        value.wrappedValue = min(range.upperBound, (value.wrappedValue / step + 1) * step)
       }
     }
     .padding(.horizontal, 12)
