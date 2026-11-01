@@ -3,6 +3,7 @@ import SwiftUI
 struct SetupView: View {
   @Binding var configuration: WorkoutConfiguration
   let compact: Bool
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     ScrollView {
@@ -55,6 +56,17 @@ struct SetupView: View {
         .font(TimerStyle.display(24))
         .foregroundStyle(.white)
         .monospacedDigit()
+        .contentTransition(
+          reduceMotion ? .identity : .numericText(value: Double(value.wrappedValue))
+        )
+        .animation(
+          reduceMotion ? nil : .snappy(duration: 0.18), value: value.wrappedValue
+        )
+        .phaseAnimator([1.0, 1.08, 1.0], trigger: value.wrappedValue) { content, scale in
+          content.scaleEffect(reduceMotion ? 1 : scale)
+        } animation: { _ in
+          reduceMotion ? nil : .spring(duration: 0.16, bounce: 0.15)
+        }
         .frame(width: 52)
         .accessibilityLabel(title)
         .accessibilityValue(
@@ -75,6 +87,7 @@ struct SetupView: View {
       RoundedRectangle(cornerRadius: 8)
         .strokeBorder(TimerStyle.secondaryButton.opacity(0.7), lineWidth: 1)
     }
+    .sensoryFeedback(.selection, trigger: value.wrappedValue)
   }
 
   private func adjustmentButton(

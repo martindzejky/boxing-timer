@@ -87,8 +87,14 @@ struct WorkoutButton: View {
 }
 
 struct WorkoutPressStyle: ButtonStyle {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .opacity(configuration.isPressed ? 0.72 : 1)
+      .opacity(configuration.isPressed ? 0.8 : 1)
+      .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+      .animation(
+        reduceMotion ? nil : .spring(duration: 0.25, bounce: 0.2),
+        value: configuration.isPressed)
   }
 }

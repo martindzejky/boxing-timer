@@ -3,6 +3,7 @@
 A private native iPhone boxing timer, built with SwiftUI. Dark navy, red accents, oversized Anton numerals, and bottom-aligned workout controls follow the approved Corner design.
 
 - Configurable rounds, round duration, rest, and preparation; settings save automatically.
+- Native press feedback, animated setup values, brief workout transitions, and haptics for adjustments and workout events. Reduce Motion disables the added animations; the running countdown stays steady.
 - Preparation → rounds and rests → completion, without a rest after the final round.
 - Pause/resume, confirmation before ending, repeat, and a work/rest summary.
 - Active rounds fill the screen with primary red and navy text and controls for visibility at a distance. Rest, preparation, pause, setup, and completion retain the navy background.

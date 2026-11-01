@@ -6,6 +6,7 @@ struct ContentView: View {
   @State private var showingSettings = false
   @State private var confirmingEnd = false
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private var isActiveRound: Bool {
     workout.screen == .running && workout.interval?.phase == .round
@@ -36,14 +37,22 @@ struct ContentView: View {
           }
         }
         .frame(height: compact ? 36 : 44)
-        switch workout.screen {
-        case .setup:
-          SetupView(configuration: $workout.configuration, compact: compact)
-        case .running, .paused:
-          timerScreen(width: geometry.size.width - 48, compact: compact)
-        case .finished:
-          finishedScreen(compact: compact)
+        ZStack {
+          switch workout.screen {
+          case .setup:
+            SetupView(configuration: $workout.configuration, compact: compact)
+              .transition(.opacity)
+          case .running, .paused:
+            timerScreen(width: geometry.size.width - 48, compact: compact)
+              .transition(.opacity)
+          case .finished:
+            finishedScreen(compact: compact)
+              .transition(
+                reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.96)))
+          }
         }
+        .animation(
+          reduceMotion ? nil : .spring(duration: 0.3, bounce: 0.12), value: workout.screen)
       }
       .padding(.horizontal, 24)
       .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -55,7 +64,20 @@ struct ContentView: View {
       }
     }
     .background(background.ignoresSafeArea())
+    .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: isActiveRound)
     .preferredColorScheme(isActiveRound ? .light : .dark)
+    .sensoryFeedback(trigger: workout.screen) { _, screen in
+      switch screen {
+      case .setup: .stop
+      case .running: .start
+      case .paused: .impact(weight: .light, intensity: 0.6)
+      case .finished: .success
+      }
+    }
+    .sensoryFeedback(.impact(weight: .medium, intensity: 0.7), trigger: workout.interval) {
+      old, new in
+      workout.screen == .running && workout.elapsed > 0 && old != nil && new != nil
+    }
     .sheet(isPresented: $showingSettings) {
       settingsSheet
     }
@@ -102,6 +124,13 @@ struct ContentView: View {
       Text(heading)
         .font(TimerStyle.display(compact ? 28 : 34))
         .foregroundStyle(accent)
+        .contentTransition(reduceMotion ? .identity : .opacity)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: heading)
+        .phaseAnimator([1.0, 1.04, 1.0], trigger: workout.interval) { content, scale in
+          content.scaleEffect(reduceMotion ? 1 : scale)
+        } animation: { _ in
+          reduceMotion ? nil : .spring(duration: 0.18, bounce: 0.1)
+        }
         .padding(.top, compact ? 8 : 16)
         .accessibilityIdentifier("workoutPhase")
       WorkoutCountdown(
