@@ -3,6 +3,12 @@ import SwiftUI
 struct SetupView: View {
   @Binding var configuration: WorkoutConfiguration
   let compact: Bool
+  let timeAdjustmentSeconds: Int
+  let hapticsEnabled: Bool
+
+  private var timeStep: Int {
+    [5, 10, 15, 30].contains(timeAdjustmentSeconds) ? timeAdjustmentSeconds : 15
+  }
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
@@ -23,9 +29,11 @@ struct SetupView: View {
         .padding(.bottom, compact ? 8 : 16)
         configurationRow("Rounds", value: $configuration.rounds, range: 1...30, step: 1)
         configurationRow(
-          "Round length", value: $configuration.roundSeconds, range: 5...900, step: 15, time: true)
+          "Round length", value: $configuration.roundSeconds, range: 5...900, step: timeStep,
+          time: true)
         configurationRow(
-          "Rest length", value: $configuration.restSeconds, range: 0...600, step: 15, time: true)
+          "Rest length", value: $configuration.restSeconds, range: 0...600, step: timeStep,
+          time: true)
         configurationRow(
           "Preparation", value: $configuration.preparationSeconds, range: 0...60, step: 5,
           time: true)
@@ -87,7 +95,7 @@ struct SetupView: View {
       RoundedRectangle(cornerRadius: 8)
         .strokeBorder(TimerStyle.secondaryButton.opacity(0.7), lineWidth: 1)
     }
-    .sensoryFeedback(.selection, trigger: value.wrappedValue)
+    .sensoryFeedback(.selection, trigger: value.wrappedValue) { _, _ in hapticsEnabled }
   }
 
   private func adjustmentButton(

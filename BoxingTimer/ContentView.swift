@@ -3,6 +3,8 @@ import SwiftUI
 
 struct ContentView: View {
   @State private var workout = WorkoutController()
+  @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+  @AppStorage("timeAdjustmentSeconds") private var timeAdjustmentSeconds = 15
   @State private var showingSettings = false
   @State private var confirmingEnd = false
   @Environment(\.scenePhase) private var scenePhase
@@ -40,8 +42,11 @@ struct ContentView: View {
         ZStack {
           switch workout.screen {
           case .setup:
-            SetupView(configuration: $workout.configuration, compact: compact)
-              .transition(.opacity)
+            SetupView(
+              configuration: $workout.configuration, compact: compact,
+              timeAdjustmentSeconds: timeAdjustmentSeconds, hapticsEnabled: hapticsEnabled
+            )
+            .transition(.opacity)
           case .running, .paused:
             timerScreen(width: geometry.size.width - 48, compact: compact)
               .transition(.opacity)
@@ -66,20 +71,26 @@ struct ContentView: View {
     .background(background.ignoresSafeArea())
     .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: isActiveRound)
     .preferredColorScheme(isActiveRound ? .light : .dark)
-    .sensoryFeedback(trigger: workout.screen) { _, screen in
+    .sensoryFeedback(trigger: workout.screen) { old, screen in
+      guard hapticsEnabled && scenePhase == .active else { return nil }
       switch screen {
-      case .setup: .stop
-      case .running: .start
-      case .paused: .impact(weight: .light, intensity: 0.6)
-      case .finished: .success
+      case .setup: return .stop
+      case .running:
+        return old != .paused && workout.interval?.phase == .round
+          ? TimerStyle.bellFeedback : .start
+      case .paused: return .impact(weight: .light, intensity: 0.6)
+      case .finished: return TimerStyle.bellFeedback
       }
     }
-    .sensoryFeedback(.impact(weight: .medium, intensity: 0.7), trigger: workout.interval) {
+    .sensoryFeedback(TimerStyle.bellFeedback, trigger: workout.interval) {
       old, new in
-      workout.screen == .running && workout.elapsed > 0 && old != nil && new != nil
+      hapticsEnabled && scenePhase == .active && workout.screen == .running
+        && workout.elapsed > 0 && old != nil && new != nil
     }
     .sheet(isPresented: $showingSettings) {
-      settingsSheet
+      SettingsView(
+        hapticsEnabled: $hapticsEnabled, timeAdjustmentSeconds: $timeAdjustmentSeconds,
+        previewBell: workout.previewBell)
     }
     .alert("End this session?", isPresented: $confirmingEnd) {
       Button("End session", role: .destructive) { workout.end() }
@@ -192,6 +203,7 @@ struct ContentView: View {
           .frame(height: 9)
       }
     }
+    .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: progressCount)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel("Round progress")
     .accessibilityValue(
@@ -308,31 +320,6 @@ struct ContentView: View {
           .frame(width: 100)
       }
     }
-  }
-
-  private var settingsSheet: some View {
-    NavigationStack {
-      List {
-        Section("Sound") {
-          Text("Bells play alongside your music, using your iPhone’s media volume.")
-          Button("Test bell", systemImage: "speaker.wave.2") { workout.previewBell() }
-        }
-        Section("During your workout") {
-          Text("The screen stays awake while the timer runs. You can also lock your phone.")
-          Text("Calls and disconnected headphones pause the session. Resume when you’re ready.")
-        }
-        Section {
-          Text("Boxing Timer").font(.headline)
-        }
-      }
-      .navigationTitle("Settings")
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Done") { showingSettings = false }
-        }
-      }
-    }
-    .tint(TimerStyle.red)
   }
 }
 

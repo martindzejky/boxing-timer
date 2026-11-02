@@ -151,6 +151,56 @@ final class WorkoutFlowTests: XCTestCase {
     XCTAssertTrue(app.buttons["Start session"].waitForExistence(timeout: 3))
   }
 
+  func testFeedbackAndTimeStepSettingsPersist() {
+    let app = XCUIApplication()
+    app.launchArguments = ["--ui-testing"]
+    app.launch()
+    app.buttons["Settings"].tap()
+    let haptics = app.switches["hapticsToggle"]
+    let originalHaptics = haptics.value as? String
+    // SwiftUI exposes the full row as the switch; tap the trailing thumb.
+    haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+    let updatedHaptics = haptics.value as? String
+    XCTAssertNotEqual(updatedHaptics, originalHaptics)
+    app.buttons["timeStepPicker"].tap()
+    app.buttons["5 seconds"].tap()
+    app.buttons["Test bell"].tap()
+    capture("14 Feedback and time settings")
+    app.buttons["Done"].tap()
+    app.buttons["Increase round length"].tap()
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:10")
+    app.buttons["Increase rest length"].tap()
+    XCTAssertEqual(app.staticTexts["Rest length"].value as? String, "0:10")
+    app.terminate()
+    app.launchArguments = []
+    app.launch()
+    app.buttons["Settings"].tap()
+    XCTAssertEqual(app.switches["hapticsToggle"].value as? String, updatedHaptics)
+    XCTAssertTrue(app.buttons["timeStepPicker"].label.contains("5 seconds"))
+    app.buttons["timeStepPicker"].tap()
+    app.buttons["30 seconds"].tap()
+    app.buttons["Done"].tap()
+    app.buttons["Increase round length"].tap()
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:30")
+    app.buttons["Decrease round length"].tap()
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:05")
+    app.buttons["Increase preparation"].tap()
+    XCTAssertEqual(app.staticTexts["Preparation"].value as? String, "0:05")
+    app.buttons["Settings"].tap()
+    app.buttons["timeStepPicker"].tap()
+    app.buttons["10 seconds"].tap()
+    app.buttons["Done"].tap()
+    app.buttons["Increase round length"].tap()
+    XCTAssertEqual(app.staticTexts["Round length"].value as? String, "0:10")
+    app.buttons["Settings"].tap()
+    app.buttons["timeStepPicker"].tap()
+    app.buttons["15 seconds"].tap()
+    app.switches["hapticsToggle"]
+      .coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+    XCTAssertEqual(app.switches["hapticsToggle"].value as? String, originalHaptics)
+    app.buttons["Done"].tap()
+  }
+
   func testConfigurationSurvivesRelaunch() {
     let app = XCUIApplication()
     app.launchArguments = ["--ui-testing"]

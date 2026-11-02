@@ -10,6 +10,8 @@ enum TimerStyle {
   static let panel = Color(red: 0.045, green: 0.095, blue: 0.15)
   static let secondaryButton = Color(red: 0.09, green: 0.16, blue: 0.25)
 
+  static let bellFeedback = SensoryFeedback.impact(weight: .heavy, intensity: 0.8)
+
   static func display(_ size: CGFloat) -> Font { .custom("Anton-Regular", size: size) }
 
   static func registerFont() {
